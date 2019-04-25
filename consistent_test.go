@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"math/rand"
 	"os"
+	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
@@ -87,6 +88,32 @@ func TestGetSingle(t *testing.T) {
 	}
 	if err := quick.Check(f, nil); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGetCircle(t *testing.T) {
+	replicas := 10
+	x := New()
+	x.NumberOfReplicas = replicas
+
+	expected := map[string]int{
+		"abcdefg": replicas,
+		"hijklmn": replicas,
+		"opqrstu": replicas,
+	}
+
+	for k, _ := range expected {
+		x.Add(k)
+	}
+
+	// Get a count of how many replicas were returned for each elt
+	result := map[string]int{}
+	for _, v := range x.GetCircle() {
+		result[v] += 1
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("got %v, expected %v", result, expected)
 	}
 }
 
@@ -691,7 +718,7 @@ func TestCollisionsCRC(t *testing.T) {
 		for i := 0; i < c.NumberOfReplicas; i++ {
 			ekey := c.eltKey(word, i)
 			// ekey := word + "|" + strconv.Itoa(i)
-			k := c.hashKey(ekey)
+			k := c.HashKey(ekey)
 			exist, ok := found[k]
 			if ok {
 				t.Logf("found collision: %s, %s", ekey, exist)

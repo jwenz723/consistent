@@ -18,7 +18,7 @@
 //
 // Read more about consistent hashing on wikipedia:  http://en.wikipedia.org/wiki/Consistent_hashing
 //
-package consistent // import "stathat.com/c/consistent"
+package consistent
 
 import (
 	"errors"
@@ -80,7 +80,7 @@ func (c *Consistent) Add(elt string) {
 // need c.Lock() before calling
 func (c *Consistent) add(elt string) {
 	for i := 0; i < c.NumberOfReplicas; i++ {
-		c.circle[c.hashKey(c.eltKey(elt, i))] = elt
+		c.circle[c.HashKey(c.eltKey(elt, i))] = elt
 	}
 	c.members[elt] = true
 	c.updateSortedHashes()
@@ -97,7 +97,7 @@ func (c *Consistent) Remove(elt string) {
 // need c.Lock() before calling
 func (c *Consistent) remove(elt string) {
 	for i := 0; i < c.NumberOfReplicas; i++ {
-		delete(c.circle, c.hashKey(c.eltKey(elt, i)))
+		delete(c.circle, c.HashKey(c.eltKey(elt, i)))
 	}
 	delete(c.members, elt)
 	c.updateSortedHashes()
@@ -140,6 +140,11 @@ func (c *Consistent) Members() []string {
 	return m
 }
 
+// GetCircle returns the map of members to hashes (one per replica)
+func (c *Consistent) GetCircle() map[uint32]string {
+	return c.circle
+}
+
 // Get returns an element close to where name hashes to in the circle.
 func (c *Consistent) Get(name string) (string, error) {
 	c.RLock()
@@ -147,7 +152,7 @@ func (c *Consistent) Get(name string) (string, error) {
 	if len(c.circle) == 0 {
 		return "", ErrEmptyCircle
 	}
-	key := c.hashKey(name)
+	key := c.HashKey(name)
 	i := c.search(key)
 	return c.circle[c.sortedHashes[i]], nil
 }
@@ -170,7 +175,7 @@ func (c *Consistent) GetTwo(name string) (string, string, error) {
 	if len(c.circle) == 0 {
 		return "", "", ErrEmptyCircle
 	}
-	key := c.hashKey(name)
+	key := c.HashKey(name)
 	i := c.search(key)
 	a := c.circle[c.sortedHashes[i]]
 
@@ -206,7 +211,7 @@ func (c *Consistent) GetN(name string, n int) ([]string, error) {
 	}
 
 	var (
-		key   = c.hashKey(name)
+		key   = c.HashKey(name)
 		i     = c.search(key)
 		start = i
 		res   = make([]string, 0, n)
@@ -235,7 +240,7 @@ func (c *Consistent) GetN(name string, n int) ([]string, error) {
 	return res, nil
 }
 
-func (c *Consistent) hashKey(key string) uint32 {
+func (c *Consistent) HashKey(key string) uint32 {
 	if len(key) < 64 {
 		var scratch [64]byte
 		copy(scratch[:], key)
